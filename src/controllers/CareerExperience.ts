@@ -1,20 +1,14 @@
-import { Request, response, Response } from 'express';
+import { Request, Response } from 'express';
 import ApplicationController from './ApplicationController';
 import CareerExperience from '../models/CareerExperience';
-import { BaseURL, DELETE, GET, POST, PUT } from '../utils/RestfulDecorators';
+import { BaseURL, Restful, DELETE, GET, POST, PUT } from '../utils/RestfulDecorators';
 import { useConnection } from '../utils/useConnection';
+import { BaseModel } from '../utils/ModelDecorators';
 
+@Restful()
 @BaseURL('/career-experience')
+@BaseModel(CareerExperience)
 class CareerExperienceController extends ApplicationController {
-
-  @GET('/')
-  public all(req: Request, res: Response) {
-    useConnection(async (conn) => {
-      const repo = conn.getRepository(CareerExperience);
-      const result = await repo.find();
-      return res.json(result);
-    }).catch(error => res.json(error));
-  }
 
   @GET('/:id')
   public one(req: Request, res: Response) {
@@ -31,7 +25,7 @@ class CareerExperienceController extends ApplicationController {
     const { body } = req;
     careerExperience.company = body.company;
     careerExperience.startMonth = body.startMonth;
-    careerExperience.startYear = body.startYear;
+    careerExperience.startYear = body.startYear; 
     careerExperience.endMonth = body.endMonth;
     careerExperience.endYear = body.endYear;
     careerExperience.position = body.position;

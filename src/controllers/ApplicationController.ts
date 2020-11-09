@@ -13,8 +13,9 @@ abstract class ApplicationController implements ControllerBase {
     const routes: RouteMap = Reflect.getMetadata('routes', this.constructor);
     const baseURL: string = Reflect.getMetadata('base', this.constructor);
 
+    console.log('Available Endpoints:');
     routes.forEach(({ route, httpAction }, name: string) => {
-      console.log(`${baseURL}${route}`);
+      console.log(`${httpAction.padStart(7)} :: ${baseURL}${route}`);
 
       let httpMethod: string;
       switch (httpAction) {

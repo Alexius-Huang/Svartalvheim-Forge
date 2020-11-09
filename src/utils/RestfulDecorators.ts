@@ -1,3 +1,6 @@
+import { Request, Response } from "express";
+import { useConnection } from "./useConnection";
+
 export enum HTTPActions {
   GET = 'GET',
   POST = 'POST',
@@ -5,6 +8,13 @@ export enum HTTPActions {
   OPTION = 'OPTION',
   DELETE = 'DELETE'
 };
+
+export enum CRUD {
+  CREATE = 'CREATE',
+  READ = 'READ',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE'
+}
 
 export type RouteMap = Map<string, { httpAction: HTTPActions; route: string }>;
 
@@ -41,3 +51,29 @@ export const POST = requestDecoratorFactory(HTTPActions.POST);
 export const PUT = requestDecoratorFactory(HTTPActions.PUT);
 export const OPTION = requestDecoratorFactory(HTTPActions.OPTION);
 export const DELETE = requestDecoratorFactory(HTTPActions.DELETE);
+
+export function Restful(
+  actions: Array<CRUD> = [CRUD.CREATE, CRUD.READ, CRUD.UPDATE, CRUD.DELETE]
+) {
+  return function (constructor: Function) {
+    if (actions.includes(CRUD.READ)) {
+      const baseModel = Reflect.getMetadata('model', constructor);
+      
+      constructor.prototype.all = function (req: Request, res: Response) {
+        useConnection(async (conn) => {
+          const repo = conn.getRepository(baseModel);
+          const result = await repo.find();
+          return res.json(result);
+        }).catch(error => res.json(error));
+      }
+
+      GET('/')(
+        constructor.prototype,
+        'all',
+        Object.getOwnPropertyDescriptor(constructor.prototype, 'all') as PropertyDescriptor
+      );
+
+      console.log(baseModel);
+    }
+  }
+}
