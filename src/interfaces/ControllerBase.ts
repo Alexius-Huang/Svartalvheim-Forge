@@ -1,5 +1,3 @@
-interface ControllerBaseInterface {
-  initRoutes(): any
-}
+interface ControllerBase {}
 
-export default ControllerBaseInterface;
+export default ControllerBase;

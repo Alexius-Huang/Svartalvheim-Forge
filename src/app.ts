@@ -5,12 +5,19 @@ class App {
   public app: Application;
   public port: number;
 
-  constructor(appInit: { port: number; middleWares: any; controllers: any; }) {
+  constructor(
+    appInit: {
+      port: number;
+      middleWares: any;
+      controllers: any;
+    }
+  ) {
     this.app = express();
-    this.port = appInit.port;
 
+    this.port = appInit.port;
     this.middlewares(appInit.middleWares);
     this.routes(appInit.controllers);
+
     // this.assets();
     // this.template();
   }
@@ -38,7 +45,7 @@ class App {
 
   public listen() {
     this.app.listen(this.port, () => {
-      console.log(`App listening on the http://localhost:${this.port}`)
+      console.log(`App listening on the http://localhost:${this.port}`);
     });
   };
 }
