@@ -56,17 +56,17 @@ export function Restful(
   actions: Array<CRUD> = [CRUD.CREATE, CRUD.READ, CRUD.UPDATE, CRUD.DELETE]
 ) {
   return function (constructor: Function) {
-    if (actions.includes(CRUD.READ)) {
-      const baseModel = Reflect.getMetadata('model', constructor);
-      const target = constructor.prototype;
+    const baseModel = Reflect.getMetadata('model', constructor);
+    const target = constructor.prototype;
 
+    if (actions.includes(CRUD.READ)) {
       /* Define Get all entities route */
       Reflect.defineProperty(target, 'all', {
         get() {
           return function (req: Request, res: Response) {
             useRepository(baseModel, async (repo) => {
               const result = await repo.find();
-              return res.json(result);              
+              return res.json({ status: 200, data: result });
             }).catch(error => res.json(error));
           }
         },
@@ -82,7 +82,7 @@ export function Restful(
           return function (req: Request, res: Response) {
             useRepository(baseModel, async (repo) => {
               const result = await repo.findOne(req.params.id);
-              return res.json(result);              
+              return res.json({ status: 200, data: result });
             }).catch(error => res.json(error));
           }
         },
@@ -91,6 +91,30 @@ export function Restful(
 
       const oneEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'one') as PropertyDescriptor;
       GET('/:id')(target, 'one', oneEntityRouteDescriptor);
+    }
+
+    if (actions.includes(CRUD.DELETE)) {
+      /* Define Delete single entry route */
+      Reflect.defineProperty(target, 'delete', {
+        get() {
+          return function (req: Request, res: Response) {
+            useRepository(baseModel, async (repo) => {
+              const careerExperience = await repo.findOne(req.params.id);
+
+              if (!careerExperience) {
+                res.json({ status: 404, message: `\`CareerExperience\` data with id: ${req.params.id} not exist` });
+              }
+
+              await repo.remove(careerExperience);
+              return res.json({ status: 200, message: 'Removed' });
+            }).catch(error => res.json(error));
+          }
+        },
+        enumerable: true
+      });
+
+      const allEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'delete') as PropertyDescriptor;
+      DELETE('/:id')(target, 'delete', allEntityRouteDescriptor);
     }
   }
 }

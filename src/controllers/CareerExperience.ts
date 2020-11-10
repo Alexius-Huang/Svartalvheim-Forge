@@ -57,22 +57,6 @@ class CareerExperienceController extends ApplicationController {
       return res.json(result);
     }).catch(error => res.json(error));
   }
-
-  @DELETE('/:id')
-  public delete(req: Request, res: Response) {
-    useConnection(async (conn) => {
-      const repo = conn.getRepository(CareerExperience);
-      const careerExperience = await repo.findOne(req.params.id);
-
-      if (!careerExperience) {
-        throw new Error(`\`CareerExperience\` data with id: ${req.params.id} not exist`);
-      }
-
-      await repo.remove(careerExperience);
-      return res.json({ message: 'Removed' });
-    }).catch(error => res.json(error));
-  }
-
 }
 
 export default CareerExperienceController;
