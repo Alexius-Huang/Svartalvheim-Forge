@@ -10,15 +10,6 @@ import { BaseModel } from '../utils/ModelDecorators';
 @BaseModel(CareerExperience)
 class CareerExperienceController extends ApplicationController {
 
-  @GET('/:id')
-  public one(req: Request, res: Response) {
-    useConnection(async (conn) => {
-      const repo = conn.getRepository(CareerExperience);
-      const result = await repo.findOne(req.params.id);
-      return res.json(result);
-    }).catch(error => res.json(error));
-  }
-
   @POST('/new')
   public new(req: Request, res: Response) {
     const careerExperience = new CareerExperience();

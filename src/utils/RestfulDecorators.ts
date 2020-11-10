@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { useConnection } from "./useConnection";
+import { useRepository } from "./useRepository";
 
 export enum HTTPActions {
   GET = 'GET',
@@ -58,22 +58,39 @@ export function Restful(
   return function (constructor: Function) {
     if (actions.includes(CRUD.READ)) {
       const baseModel = Reflect.getMetadata('model', constructor);
-      
-      constructor.prototype.all = function (req: Request, res: Response) {
-        useConnection(async (conn) => {
-          const repo = conn.getRepository(baseModel);
-          const result = await repo.find();
-          return res.json(result);
-        }).catch(error => res.json(error));
-      }
+      const target = constructor.prototype;
 
-      GET('/')(
-        constructor.prototype,
-        'all',
-        Object.getOwnPropertyDescriptor(constructor.prototype, 'all') as PropertyDescriptor
-      );
+      /* Define Get all entities route */
+      Reflect.defineProperty(target, 'all', {
+        get() {
+          return function (req: Request, res: Response) {
+            useRepository(baseModel, async (repo) => {
+              const result = await repo.find();
+              return res.json(result);              
+            }).catch(error => res.json(error));
+          }
+        },
+        enumerable: true
+      });
 
-      console.log(baseModel);
+      const allEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'all') as PropertyDescriptor;
+      GET('/')(target, 'all', allEntityRouteDescriptor);
+
+      /* Define Get single entity route */
+      Reflect.defineProperty(target, 'one', {
+        get() {
+          return function (req: Request, res: Response) {
+            useRepository(baseModel, async (repo) => {
+              const result = await repo.findOne(req.params.id);
+              return res.json(result);              
+            }).catch(error => res.json(error));
+          }
+        },
+        enumerable: true
+      });
+
+      const oneEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'one') as PropertyDescriptor;
+      GET('/:id')(target, 'one', oneEntityRouteDescriptor);
     }
   }
 }
