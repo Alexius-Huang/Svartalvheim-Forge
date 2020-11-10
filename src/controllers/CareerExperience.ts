@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
 import ApplicationController from './ApplicationController';
 import CareerExperience from '../models/CareerExperience';
-import { BaseURL, Restful, DELETE, GET, POST, PUT } from '../utils/RestfulDecorators';
+import { BaseURL, BaseModel, Restful, POST, PUT } from '../utils/RestfulDecorators';
 import { useConnection } from '../utils/useConnection';
-import { BaseModel } from '../utils/ModelDecorators';
 
 @Restful()
 @BaseURL('/career-experience')

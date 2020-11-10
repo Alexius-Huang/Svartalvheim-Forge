@@ -1,7 +1,5 @@
-import { EntityTarget } from 'typeorm';
-
-export function BaseModel(baseModel: EntityTarget<any>) {
+export function ModelTable(table: string) {
   return function (constructor: Function) {
-    Reflect.defineMetadata('model', baseModel, constructor);
+    Reflect.defineMetadata('model:table', table, constructor);        
   }
 }

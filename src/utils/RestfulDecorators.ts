@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { useRepository } from "./useRepository";
+import { EntityTarget } from "typeorm";
+import knex from "./knex";
 
 export enum HTTPActions {
   GET = 'GET',
@@ -21,6 +22,12 @@ export type RouteMap = Map<string, { httpAction: HTTPActions; route: string }>;
 export function BaseURL(baseURL: string) {
   return function (constructor: Function) {
     Reflect.defineMetadata('base', baseURL, constructor);
+  }
+}
+
+export function BaseModel(baseModel: EntityTarget<any>) {
+  return function (constructor: Function) {
+    Reflect.defineMetadata('model', baseModel, constructor);
   }
 }
 
@@ -57,40 +64,43 @@ export function Restful(
 ) {
   return function (constructor: Function) {
     const baseModel = Reflect.getMetadata('model', constructor);
+    const tableName = Reflect.getMetadata('model:table', baseModel);
     const target = constructor.prototype;
 
     if (actions.includes(CRUD.READ)) {
       /* Define Get all entities route */
-      Reflect.defineProperty(target, 'all', {
+      Reflect.defineProperty(target, 'read:all', {
         get() {
           return function (req: Request, res: Response) {
-            useRepository(baseModel, async (repo) => {
-              const result = await repo.find();
-              return res.json({ status: 200, data: result });
-            }).catch(error => res.json(error));
+            knex(tableName).select('*').then(data => {
+              res.json({ status: 200, data });
+            }).catch(err => {
+              res.json(err);
+            });
           }
         },
         enumerable: true
       });
 
-      const allEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'all') as PropertyDescriptor;
-      GET('/')(target, 'all', allEntityRouteDescriptor);
+      const allEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'read:all') as PropertyDescriptor;
+      GET('/')(target, 'read:all', allEntityRouteDescriptor);
 
       /* Define Get single entity route */
-      Reflect.defineProperty(target, 'one', {
+      Reflect.defineProperty(target, 'read:single', {
         get() {
           return function (req: Request, res: Response) {
-            useRepository(baseModel, async (repo) => {
-              const result = await repo.findOne(req.params.id);
-              return res.json({ status: 200, data: result });
-            }).catch(error => res.json(error));
+            knex(tableName).select('*').where({ id: req.params.id }).then(data => {
+              res.json({ status: 200, data });
+            }).catch(err => {
+              res.json(err);
+            });
           }
         },
         enumerable: true
       });
 
-      const oneEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'one') as PropertyDescriptor;
-      GET('/:id')(target, 'one', oneEntityRouteDescriptor);
+      const oneEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'read:single') as PropertyDescriptor;
+      GET('/:id')(target, 'read:single', oneEntityRouteDescriptor);
     }
 
     if (actions.includes(CRUD.DELETE)) {
@@ -98,16 +108,11 @@ export function Restful(
       Reflect.defineProperty(target, 'delete', {
         get() {
           return function (req: Request, res: Response) {
-            useRepository(baseModel, async (repo) => {
-              const careerExperience = await repo.findOne(req.params.id);
-
-              if (!careerExperience) {
-                res.json({ status: 404, message: `\`CareerExperience\` data with id: ${req.params.id} not exist` });
-              }
-
-              await repo.remove(careerExperience);
-              return res.json({ status: 200, message: 'Removed' });
-            }).catch(error => res.json(error));
+            knex(tableName).select('*').where({ id: req.params.id }).del().then(() => {
+              res.json({ status: 200 });
+            }).catch(err => {
+              res.json(err);
+            });
           }
         },
         enumerable: true

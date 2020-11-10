@@ -1,7 +1,9 @@
-import type ModelBase from 'interfaces/ModelBase';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import type ModelBase from '../interfaces/ModelBase';
+import { ModelTable } from '../utils/ModelDecorators';
 
 @Entity()
+@ModelTable('career_experience')
 export default class CareerExperience implements ModelBase {
   @PrimaryGeneratedColumn()
   id!: number;
