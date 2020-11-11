@@ -1,3 +1,4 @@
+import { validateRequired } from './validations';
 import camelToSnakeCase from './camelToSnakeCase';
 import knex from './knex';
 
@@ -56,40 +57,64 @@ export function ModelSchema(options?: ModelOptions): ClassDecorator {
     Reflect.defineMetadata('model:table', table, constructor);
 
     const columns: ModelColumns = Reflect.getMetadata('model:columns', constructor);
+    const primaryKey = Reflect.getMetadata('model:primary-column', constructor);
 
     Reflect.defineProperty(constructor.prototype, '_map_to_data_table', {
+      get() {
+        const data = (this as any)._formatted_data;
+        const columnKeys = columns.keys();
+        let columnKey = columnKeys.next();
+        const result: Record<string, ColumnValueType> = {};
+        while (!columnKey.done) {
+          const { value: key } = columnKey;
+          const { mappedColumnName } = columns.get(key) as ModelColumn;
+          result[mappedColumnName] = data[key];
+          columnKey = columnKeys.next();
+        }
+
+        result[primaryKey] = (this as any)[primaryKey] ?? null;
+
+        return result;
+      }
+    });
+
+    Reflect.defineProperty(constructor.prototype, '_formatted_data', {
       get() {
         const columnKeys = columns.keys();
         let columnKey = columnKeys.next();
         const result: Record<string, ColumnValueType> = {};
         while (!columnKey.done) {
           const { value: key } = columnKey;
-          const { mappedColumnName, isArray, type: dataType } = columns.get(key) as ModelColumn;
+          const { isArray, type: dataType } = columns.get(key) as ModelColumn;
           const value = (this as any)[key];
           if (isArray) {
-            result[mappedColumnName] = JSON.parse(value);
+            result[key] = JSON.parse(value);
           } else {
-            result[mappedColumnName] = stringToTypeConversion(value, dataType);
+            result[key] = stringToTypeConversion(value, dataType);
           }
 
           columnKey = columnKeys.next();
         }
 
-        const primaryKey = Reflect.getMetadata('model:primary-column', constructor);
         result[primaryKey] = (this as any)[primaryKey] ?? null;
-
         return result;
       }
-    })
+    });
 
     // this is service
     constructor.prototype.create = async function (data: Record<string, ColumnValueType>) {
       const columnKeys = columns.keys();
       let columnKey = columnKeys.next();
-      
+
       while (!columnKey.done) {
         const { value: key } = columnKey;
-        this[key] = data[key];
+        const { required, type } = columns.get(key) as ModelColumn;
+        const value = data[key];
+        
+        // TODO: implement length check
+        required && validateRequired(key, type, data[key]);
+
+        this[key] = value;
         columnKey = columnKeys.next();
       }
 
@@ -99,30 +124,35 @@ export function ModelSchema(options?: ModelOptions): ClassDecorator {
       // this is repo
       const tableData = this._map_to_data_table;
       delete tableData.id;
-      await knex(table).insert(tableData);
+      const [ id ] = await knex(table).insert(tableData).returning('id');
+      this[primaryKey] = id;
 
-      return this;
+      return this._formatted_data;
     }
 
     constructor.prototype.update = async function (id: number | string, data: Record<string, ColumnValueType>) {
       const columnKeys = columns.keys();
       let columnKey = columnKeys.next();
-      
+
+      const originCopy: { [key: string]: string } = await knex(table).select('*').where({ id }).first();
+
       while (!columnKey.done) {
         const { value: key } = columnKey;
-        this[key] = data[key];
+        const { mappedColumnName } = columns.get(key) as ModelColumn;
+        this[key] = data[key] || (originCopy as any)[mappedColumnName];
         columnKey = columnKeys.next();
       }
 
-      this.createdAt = new Date();
-      this.updatedAt = new Date(this.createdAt);
+      this.createdAt = originCopy.created_at;
+      this.updatedAt = new Date();
 
       // this is repo
       const tableData = this._map_to_data_table;
       delete tableData.id;
       await knex(table).where({ id }).update(tableData);
 
-      return this;
+      this[primaryKey] = originCopy[primaryKey];
+      return this._formatted_data;
     }
   }
 }

@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import knex from './knex';
 import CareerExperience from '../models/CareerExperience';
-import ApplicationModel from 'models/ApplicationModel';
 
 export enum HTTPActions {
   GET = 'GET',
@@ -92,7 +91,7 @@ export function Restful(
       Reflect.defineProperty(target, 'read:single', {
         get() {
           return function (req: Request, res: Response) {
-            knex(tableName).select('*').where({ id: req.params.id }).then(data => {
+            knex(tableName).select('*').where({ id: req.params.id }).first().then(data => {
               res.json({ status: 200, data });
             }).catch(err => {
               res.json(err);
@@ -114,8 +113,7 @@ export function Restful(
             const careerExperience = new CareerExperience();
             const { body } = req;
             careerExperience.create(body).then(data => {
-              console.log(data);
-              res.json({ status: 200 });
+              res.json({ status: 200, data });
             }).catch(error => console.log(error));
           }
         },
@@ -134,8 +132,7 @@ export function Restful(
             const careerExperience = new CareerExperience();
             const { body } = req;
             careerExperience.update(req.params.id, body).then(data => {
-              console.log(data);
-              res.json({ status: 200 });
+              res.json({ status: 200, data });
             }).catch(error => console.log(error));
           }
         },
