@@ -1,6 +1,7 @@
-import { Request, Response } from "express";
-import { EntityTarget } from "typeorm";
-import knex from "./knex";
+import { Request, Response } from 'express';
+import knex from './knex';
+import CareerExperience from '../models/CareerExperience';
+import ApplicationModel from 'models/ApplicationModel';
 
 export enum HTTPActions {
   GET = 'GET',
@@ -19,33 +20,35 @@ export enum CRUD {
 
 export type RouteMap = Map<string, { httpAction: HTTPActions; route: string }>;
 
-export function BaseURL(baseURL: string) {
+export function BaseURL(baseURL: string): ClassDecorator {
   return function (constructor: Function) {
     Reflect.defineMetadata('base', baseURL, constructor);
   }
 }
 
-export function BaseModel(baseModel: EntityTarget<any>) {
+export function BaseModel(baseModel: Function): ClassDecorator {
   return function (constructor: Function) {
     Reflect.defineMetadata('model', baseModel, constructor);
   }
 }
 
 function requestDecoratorFactory(httpAction: HTTPActions) {
-  return function (url?: string) {
+  return function (url?: string): MethodDecorator {
     return function (
       target: any,
-      propertyKey: string,
+      propertyKey: string | symbol,
       descriptor: PropertyDescriptor
     ) {
+      const key = String(propertyKey);
       const routes: RouteMap = Reflect.getMetadata('routes', target.constructor);
-      const route = url || `/${propertyKey}`;
+      const route = url ?? `/${key}`; 
+
       if (routes) {
-        routes.set(propertyKey, { httpAction, route});
+        routes.set(key, { httpAction, route});
       } else {
         Reflect.defineMetadata(
           'routes',
-          new Map([[propertyKey, { httpAction, route }]]),
+          new Map([[key, { httpAction, route }]]),
           target.constructor
         );
       }
@@ -61,7 +64,7 @@ export const DELETE = requestDecoratorFactory(HTTPActions.DELETE);
 
 export function Restful(
   actions: Array<CRUD> = [CRUD.CREATE, CRUD.READ, CRUD.UPDATE, CRUD.DELETE]
-) {
+): ClassDecorator {
   return function (constructor: Function) {
     const baseModel = Reflect.getMetadata('model', constructor);
     const tableName = Reflect.getMetadata('model:table', baseModel);
@@ -101,6 +104,46 @@ export function Restful(
 
       const oneEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'read:single') as PropertyDescriptor;
       GET('/:id')(target, 'read:single', oneEntityRouteDescriptor);
+    }
+
+    if (actions.includes(CRUD.CREATE)) {
+      /* Define Create single entry route */
+      Reflect.defineProperty(target, 'create', {
+        get() {
+          return function (req: Request, res: Response) {
+            const careerExperience = new CareerExperience();
+            const { body } = req;
+            careerExperience.create(body).then(data => {
+              console.log(data);
+              res.json({ status: 200 });
+            }).catch(error => console.log(error));
+          }
+        },
+        enumerable: true
+      });
+
+      const allEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'create') as PropertyDescriptor;
+      POST('/')(target, 'create', allEntityRouteDescriptor);
+    }
+
+    if (actions.includes(CRUD.UPDATE)) {
+      /* Define Update single entry route */
+      Reflect.defineProperty(target, 'update', {
+        get() {
+          return function (req: Request, res: Response) {
+            const careerExperience = new CareerExperience();
+            const { body } = req;
+            careerExperience.update(req.params.id, body).then(data => {
+              console.log(data);
+              res.json({ status: 200 });
+            }).catch(error => console.log(error));
+          }
+        },
+        enumerable: true
+      });
+
+      const allEntityRouteDescriptor = Object.getOwnPropertyDescriptor(target, 'update') as PropertyDescriptor;
+      PUT('/:id')(target, 'update', allEntityRouteDescriptor);
     }
 
     if (actions.includes(CRUD.DELETE)) {

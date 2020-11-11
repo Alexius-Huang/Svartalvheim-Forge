@@ -1,40 +1,46 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import type ModelBase from '../interfaces/ModelBase';
-import { ModelTable } from '../utils/ModelDecorators';
+import ApplicationModel from './ApplicationModel';
 
-@Entity()
-@ModelTable('career_experience')
-export default class CareerExperience implements ModelBase {
-  @PrimaryGeneratedColumn()
+import {
+  IntegerColumn,
+  ModelSchema,
+  Required,
+  TextColumn,
+  TimestampColumn,
+  PrimaryColumn
+} from '../utils/ModelDecorators';
+
+@ModelSchema()
+export default class CareerExperience extends ApplicationModel {
+  @PrimaryColumn()
   id!: number;
 
-  @Column({ length: 255 })
+  @TextColumn({ length: 255 })
   company!: string;
 
-  @Column({ name: 'start_month' })
+  @IntegerColumn({ required: true })
   startMonth!: number;
 
-  @Column({ name: 'start_year' })
+  @Required @IntegerColumn()
   startYear!: number;
 
-  @Column({ name: 'end_month', nullable: true })
+  @IntegerColumn()
   endMonth?: number;
 
-  @Column({ name: 'end_year', nullable: true })
+  @IntegerColumn()
   endYear?: number;
 
-  @Column({ length: 255 })
+  @TextColumn({ length: 255 })
   position!: string;
 
-  @Column({ type: 'varchar', length: 255, array: true })
+  @TextColumn({ isArray: true, length: 255 })
   tags!: Array<string>;
 
-  @Column({ type: 'text', array: true })
+  @TextColumn({ isArray: true })
   description!: Array<string>;
 
-  @Column({ name: 'created_at', type: 'timestamp' })
+  @TimestampColumn()
   createdAt!: Date;
 
-  @Column({ name: 'updated_at', type: 'timestamp' })
+  @TimestampColumn()
   updatedAt!: Date;
 }
