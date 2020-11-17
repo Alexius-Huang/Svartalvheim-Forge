@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS career_experience (
   id          SERIAL PRIMARY KEY,
-  company     VARCHAR(255) UNIQUE NOT NULL,
+  company     VARCHAR(255) NOT NULL,
   start_month INT NOT NULL,
   start_year  INT NOT NULL,
   end_month   INT,

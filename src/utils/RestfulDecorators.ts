@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import knex from './knex';
 import CareerExperience from '../models/CareerExperience';
+import snakeKeysToCamelCase from '../utils/snakeKeysToCamelCase';
 
 export enum HTTPActions {
   GET = 'GET',
@@ -75,7 +76,7 @@ export function Restful(
         get() {
           return function (req: Request, res: Response) {
             knex(tableName).select('*').then(data => {
-              res.json({ status: 200, data });
+              res.json({ status: 200, data: data.map(snakeKeysToCamelCase) });
             }).catch(err => {
               res.json(err);
             });
@@ -92,7 +93,7 @@ export function Restful(
         get() {
           return function (req: Request, res: Response) {
             knex(tableName).select('*').where({ id: req.params.id }).first().then(data => {
-              res.json({ status: 200, data });
+              res.json({ status: 200, data: snakeKeysToCamelCase(data) });
             }).catch(err => {
               res.json(err);
             });
@@ -113,7 +114,7 @@ export function Restful(
             const careerExperience = new CareerExperience();
             const { body } = req;
             careerExperience.create(body).then(data => {
-              res.json({ status: 200, data });
+              res.json({ status: 200, data: snakeKeysToCamelCase(data) });
             }).catch(error => console.log(error));
           }
         },
@@ -132,7 +133,7 @@ export function Restful(
             const careerExperience = new CareerExperience();
             const { body } = req;
             careerExperience.update(req.params.id, body).then(data => {
-              res.json({ status: 200, data });
+              res.json({ status: 200, data: snakeKeysToCamelCase(data) });
             }).catch(error => console.log(error));
           }
         },
